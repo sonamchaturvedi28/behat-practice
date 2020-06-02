@@ -1,0 +1,23 @@
+default:
+  suites:
+    default:
+      contexts:
+        - FeatureContext
+        - Drupal\DrupalExtension\Context\DrupalContext
+        - Drupal\DrupalExtension\Context\MinkContext
+        - Drupal\DrupalExtension\Context\MessageContext
+        - Drupal\DrupalExtension\Context\DrushContext
+  extensions:
+    DMore\ChromeExtension\Behat\ServiceContainer\ChromeExtension: ~
+    Behat\MinkExtension:
+      goutte: ~
+      browser_name: chrome
+      javascript_session: default
+      selenium2: ~
+      base_url: http://automationpractice.com/index.php
+      sessions:
+       default:
+         chrome:
+           api_url: "http://localhost:9222"
+    Drupal\DrupalExtension:
+      blackbox: ~

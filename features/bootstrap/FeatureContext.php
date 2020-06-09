@@ -4,6 +4,8 @@ use Behat\Behat\Context\Context;
 use Behat\MinkExtension\Context\RawMinkContext;
 use Behat\Gherkin\Node\TableNode;
 
+require_once __DIR__.'/../../vendor/phpunit/phpunit/src/Framework/Assert/Functions.php';
+
 /**
  * Defines application features from the specific context.
  */
@@ -19,184 +21,138 @@ class FeatureContext extends RawMinkContext implements Context
     public function __construct()
     {
     }
-    
+
     /**
      * @Given I am on the cart page
      */
     public function iAmOnTheCartPage()
     {
-       $this->visitPath("/index.php?controller=order");   
+       $this->visitPath("/index.php?controller=order");
     }
-    
+
     /**
      * @Given I add :product_name into the cart
      */
     public function iAddIntoTheCart($product_name)
     {
         $page = $this->getSession()->getPage();
-        $product_add = $page->findAll('css','.product_img_link');
-        for($index=0; $index < count($product_add);$index++)
-        {
-            if(strpos($product_add[$index]->getAttribute('title'),$product_name)!==FALSE)
-            {
-                $product_add[$index]->click();
-            }
-        }
+        $product = $page->find('xpath','//a[@class="product_img_link" and @title="'.$product_name.'"]');
+        $product->click();
     }
-    
+
     /* Get product row based on Product Name
      */
     public function getProductRow($product_name)
     {
         $page = $this->getSession()->getPage();
-        
-        $products = $page->findAll('css', '.cart_item');
-        if (empty($products)) {
-         throw new \Exception(sprintf('No rows found on the page %s', $this->getSession()->getCurrentUrl()));
-        }
-        for($row=0;$row < count($products);$row++)
-        {
-            if (strpos($products[$row]->find('css', 'p.product-name')->getText(), $product_name) !== FALSE) {
-                return $products[$row];
-            }
-            /* Alternative code to find product row
-            if (strpos($products[$row]->getText(), $product_name) !== FALSE) {
-             return $product[$row];
-            }*/
-        }
-    } 
-    
+        $product_row = $page->find('xpath','//a[text()="'.$product_name.'"]//ancestor::tr[1]');
+        return $product_row;
+    }
+
     /**
      * @Then I should see correct total price
      */
     public function iShouldSeeCorrectTotalPrice()
     {
        $page = $this->getSession()->getPage();
-       $actual_total = 0;
-       $product_total = $page->findAll('css','td.cart_total');
-       for($index=0;$index < count($product_total);$index++)
+       $products_total = 0;
+       $list_of_product_total = $page->findAll('css','td.cart_total');
+       for($index=0;$index < count($list_of_product_total);$index++)
        {
-           $actual_total = $actual_total + (float)str_replace("$", "",$product_total[$index]->getText());
+           $products_total = $products_total + (float)str_replace("$", "",$list_of_product_total[$index]->getText());
        }
 
        $total_shipping = (float)str_replace("$", "",$page->find('css','#total_shipping')->getText());
-       
+
        //Total tax field is available only on Shopping Cart summary page
        if($page->hasContent("Shopping-cart summary"))
        {
            $total_tax = (float)str_replace("$", "",$page->find('css','#total_tax')->getText());
        }
        $actual_cart_total = (float)str_replace("$", "",$page->find('css','#total_price_container')->getText());
-       $expected_cart_total = $actual_total + $total_shipping + $total_tax;
-       if ((string)$actual_cart_total !== (string)$expected_cart_total) {
-            throw new \Exception('Incorrect Total Cart Price result');
-        }
+       $expected_cart_total = $products_total + $total_shipping + $total_tax;
+       Assert.assertEquals($actual_cart_total,$expected_cart_total,'Incorrect Total Cart Price result');
     }
-    
+
     /**
      * @Then I should see Product details :
      */
     public function iShouldSeeProductDetails(TableNode $table)
     {
-      $array = $table->getRowsHash();
-   
-      for ($index=0;$index<count($array['Product Name']);$index++)
+      $product_details = $table->getRowsHash();
+
+      for ($index=0;$index<count($product_details['Product Name']);$index++)
       {
-        $row = $this->getProductRow($array['Product Name']);
-        
-        $color_size = $row->find('css', '.cart_description > small > a')->getText();
-        $color_array = explode(", ", $color_size);
-      
-        if(strcmp($color_array[0],$array['Product Colour'])!= 0)
-        {
-            throw new \Exception('Product colour incorrect');
-        }       
-        if(strcmp($color_array[1],$array['Product Size'])!= 0)
-        {
-            throw new \Exception('Product size incorrect');
-        }
-        if(strcmp($row->find('css','.cart_unit > span > span')->getText(), $array['Product Price'])!=0)
-        {
-             throw new \Exception('Incorrect Unit Price of '.$array['Product Name']);
-        }
-        if(strcmp($row->find('css','.cart_quantity > input')->getAttribute('value'), $array['Product Quantity'])!=0)
-        {
-             throw new \Exception('Incorrect Quantity of '.$array['Product Name']);
-        }
-      } 
+        $product_row = $this->getProductRow($product_details['Product Name']);
+        $attr_colour_size = explode(", ", $product_row->find('css', '.cart_description > small > a')->getText());
+
+        Assert.assertEquals($attr_colour_size[0],$product_details['Product Colour']);
+        Assert.assertEquals($attr_colour_size[1],$product_details['Product Size']);
+        Assert.assertEquals($product_row->find('css','.cart_unit > span > span')->getText(), $product_details['Product Price']);
+        Assert.assertEquals($product_row->find('css','.cart_quantity > input')->getAttribute('value'), $product_details['Product Quantity']);
+      }
     }
-    
+
     /**
      * @Then I should see quantity of :product_name as :expected_qty
      */
     public function iShouldSeeQuantityOfAs($product_name, $expected_qty)
     {
-        $row = $this->getProductRow($product_name);
-        $actual_qty = $row->find('css','.cart_quantity > input')->getAttribute('value');
-        if((string)$actual_qty!==(string)$expected_qty)
-        {
-             throw new \Exception('Incorrect Quantity after update');
-        }
+        $product_row = $this->getProductRow($product_name);
+        $actual_qty = $product_row->find('css','.cart_quantity > input')->getAttribute('value');
+        Assert.assertEquals($actual_qty,$expected_qty,'Incorrect Quantity after update');
     }
-    
+
    /**
      * @Given I remove the product :product_name
      */
     public function iRemoveTheProduct($product_name)
     {
-       $row = $this->getProductRow($product_name);
-       $row->clickLink("Delete");
+       $product_row = $this->getProductRow($product_name);
+       $product_row->clickLink("Delete");
     }
-    
+
    /**
      * @Then I :action the quantity of ":product" by :quantity
      */
     public function iTheQuantityOfBy($action, $product_name, $quantity)
     {
-        $row = $this->getProductRow($product_name);
-        $product_qty = $row->find('css','.cart_quantity > input')->getAttribute('value');
-        if($action == "increase")
-        {      
+        $product_row = $this->getProductRow($product_name);
+        $product_qty = $product_row->find('css','.cart_quantity > input')->getAttribute('value');
+
+        switch ($action)
+        {
+          case "increase":
             for($index=0;$index < $quantity;$index++)
             {
-                $row->clickLink("Add");
+                $product_row->clickLink("Add");
             }
-        }
-        else
-        {
+            break;
+
+          case "decrease":
             if($product_qty >= $quantity)
             {
                 for($index=0;$index < $quantity;$index++)
                 {
-                    $row->clickLink("Subtract");
+                    $product_row->clickLink("Subtract");
                 }
             }
+            break;
+          default: echo "Incorrect Action" ;
         }
-        $this->getSession()->reload();
     }
-    
-    
+
     /**
      * @Then I should not see :product_name product
      */
     public function iShouldNotSeeProduct($product_name)
     {
         $page=$this->getSession()->getPage();
-        $products = $page->findAll('css', 'td.cart_item');
-        
-        //Checking if atleast one product in the cart after deleting other product
-        if(count($products) >= 1)
-        {
-            for($row=0;$row < count($products);$row++)
-            {
-                if(strpos($products[$row]->find('css', 'p.product-name')->getText(),$product_name) !== FALSE)
-                 {
-                     throw new \Exception('Product not removed successfully');
-                 }
-            }
-        }
+        $product_row = $page->find('xpath','//a[text()="'.$product_name.'"]');
+
+        Assert.assertNull($product_row,'Product not removed successfully');
     }
-    
+
     /**
      * @Given I click on Checkout
      */

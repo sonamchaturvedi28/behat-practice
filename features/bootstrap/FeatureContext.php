@@ -3,6 +3,7 @@
 use Behat\Behat\Context\Context;
 use Behat\MinkExtension\Context\RawMinkContext;
 use Behat\Gherkin\Node\TableNode;
+use PHPUnit\Framework\Assert;
 
 require_once __DIR__.'/../../vendor/phpunit/phpunit/src/Framework/Assert/Functions.php';
 
@@ -161,4 +162,14 @@ class FeatureContext extends RawMinkContext implements Context
         $page = $this->getSession()->getPage();
         $page->find('css','.cart_navigation')->clickLink("Proceed to checkout");
     }
+
+    /**
+     * @When I wait for the page to be loaded
+     */
+    public function iWaitForThePageToBeLoaded()
+    {
+      #$this->getSession()->wait(20000, "document.readyState === 'complete'");
+      sleep(10);
+    }
+
 }

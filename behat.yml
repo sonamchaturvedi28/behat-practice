@@ -7,6 +7,9 @@ default:
         - Drupal\DrupalExtension\Context\MinkContext
         - Drupal\DrupalExtension\Context\MessageContext
         - Drupal\DrupalExtension\Context\DrushContext
+  formatters:
+    html:
+      output_path: build/html/behat
   extensions:
     DMore\ChromeExtension\Behat\ServiceContainer\ChromeExtension: ~
     Behat\MinkExtension:
@@ -21,3 +24,15 @@ default:
            api_url: "http://localhost:9222"
     Drupal\DrupalExtension:
       blackbox: ~
+    emuse\BehatHTMLFormatter\BehatHTMLFormatterExtension:
+      name: html
+      renderer: Twig,Behat2
+      file_name: index
+      print_args: true
+      print_outp: true
+      loop_break: true
+    # Bex\Behat\ScreenshotExtension:
+    #   screenshot_taking_mode: failed_scenarios
+    #   image_drivers:
+    #     local:
+    #       screenshot_directory: "%paths.base%/media"
